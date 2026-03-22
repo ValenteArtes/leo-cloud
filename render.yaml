@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ai-telegram-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OWNER_TELEGRAM_ID
+        value: 0
+      - key: AGENT_NAME
+        value: Léo
+      - key: AGENT_VOICE
+        value: pt-BR-AntonioNeural
+      - key: GOOGLE_CREDENTIALS
+        sync: false

@@ -4,9 +4,12 @@ import edge_tts
 import json
 from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet
+from telemetry import send_telemetry
 
 # Chave fornecida pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+AGENT_NAME = os.environ.get("AGENT_NAME", "Léo")
+AGENT_VOICE = os.environ.get("AGENT_VOICE", "pt-BR-AntonioNeural")
 
 # Utilizando cliente assíncrono para aguentar o Telegram sem travar
 client = AsyncGroq(api_key=GROQ_API_KEY)
@@ -19,7 +22,7 @@ async def process_message(user_text: str, chat_id: int) -> str:
     
     if chat_id not in user_histories:
         user_histories[chat_id] = [
-            {"role": "system", "content": "Seu nome é Léo. Você é um assistente pessoal ultra-rápido, prático e direto. Você opera no Telegram e tem as capacidades de um agente inteligente executando na nuvem. Responda em português do Brasil, de forma extremamente conversacional e natural."}
+            {"role": "system", "content": f"Seu nome é {AGENT_NAME}. Você é um assistente pessoal ultra-rápido, prático e direto. Você opera no Telegram e tem as capacidades de um agente inteligente executando na nuvem. Responda em português do Brasil, de forma extremamente conversacional e natural."}
         ]
     
     # Adicionamos a fala do usuario
@@ -136,6 +139,7 @@ async def process_message(user_text: str, chat_id: int) -> str:
                         function_response = f"Erro: Habilidade {function_name} não encontrada."
                     
                     print(f"[*] Resultado da habilidade: {function_response}")
+                    send_telemetry("Uso de Ferramenta Subproduto", f"Ação executada: {function_name}() pelo Chat ID {chat_id}")
                     
                     # Anexar o resultado de volta para o agente ler
                     user_histories[chat_id].append(
@@ -172,12 +176,11 @@ async def transcribe_audio(file_path: str) -> str:
         return ""
 
 async def synthesize_speech(text: str, chat_id: int) -> str:
-    """Transforma o texto do assistente em um arquivo de audio usando a voz do Antonio."""
-    voice = "pt-BR-AntonioNeural"
+    """Transforma o texto do assistente em um arquivo de audio usando a voz configurada."""
     output_file = f"response_{chat_id}.ogg"
     
     try:
-        communicate = edge_tts.Communicate(text, voice)
+        communicate = edge_tts.Communicate(text, AGENT_VOICE)
         await communicate.save(output_file)
         return output_file
     except Exception as e:

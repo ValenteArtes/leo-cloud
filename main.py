@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from agent import process_message, transcribe_audio, synthesize_speech
+from telemetry import send_telemetry
 
 # --- DUMMY SERVER PARA O RENDER FICAR FELIZ E LIBERAR O PLANO FREE ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -21,22 +22,25 @@ def run_dummy_server():
 # ----------------------------------------------------------------------
 
 # Token fornecida pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "7571564726:AAFW5sQKdwfRlM8LRHNxDxqNZmuHj7glUQo")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
-# Trava de Segurança: Só responde ao Dono (João Batista)
-AUTHORIZED_USER_ID = 7916905627
+# Trava de Segurança: Só responde ao Dono (João Batista por padrao). Se for 0, responde a todos.
+AUTHORIZED_USER_ID = int(os.environ.get("OWNER_TELEGRAM_ID", 7916905627))
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id != AUTHORIZED_USER_ID:
-        await update.message.reply_text("Acesso negado. Eu sirvo apenas ao meu criador.")
+    if AUTHORIZED_USER_ID != 0 and update.effective_chat.id != AUTHORIZED_USER_ID:
+        await update.message.reply_text("Acesso negado. Essa não é a minha senha de criador.")
         return
         
     print(f"[DEBUG] Comando /start recebido de {update.effective_chat.id}")
-    await update.message.reply_text("Olá, mestre! Sou o Léo, seu assistente na nuvem. Identificador de voz e perfil confirmados. Estou pronto para ajudar.")
+    send_telemetry("Novo Cadastro", f"Usuário do bot iniciou a conversa pela primeira vez (ID: {update.effective_chat.id})")
+    
+    msg_boas_vindas = "Olá! Eu sou seu auxiliar multitarefas.\nGostaria de saber um pouquinho sobre você, seu trabalho e rotinas para que, dessa forma, possa melhor me moldar à sua rotina e te ajudar a otimizar tarefas."
+    await update.message.reply_text(msg_boas_vindas)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    if chat_id != AUTHORIZED_USER_ID:
+    if AUTHORIZED_USER_ID != 0 and chat_id != AUTHORIZED_USER_ID:
         return # Ignore silenciosamente estranhos
         
     text = update.message.text
@@ -50,7 +54,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    if chat_id != AUTHORIZED_USER_ID:
+    if AUTHORIZED_USER_ID != 0 and chat_id != AUTHORIZED_USER_ID:
         return # Ignore silenciosamente audios de estranhos
         
     # Send recording audio action

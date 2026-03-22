@@ -8,11 +8,21 @@ scopes = [
     "https://www.googleapis.com/auth/drive"
 ]
 
+import json
+
 def get_sheets_client():
-    # Caminho onde copiamos o arquivo .json do usuario
-    creds_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "credentials.json")
+    # Verifica primeiro se foi passado via variavel de ambiente (Deploy Rapido Render)
+    env_creds = os.environ.get("GOOGLE_CREDENTIALS")
+    
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scopes)
+        if env_creds and env_creds.strip():
+            creds_dict = json.loads(env_creds)
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scopes)
+        else:
+            # Fallback para o modo antigo de arquivo local
+            creds_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "credentials.json")
+            creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scopes)
+            
         client = gspread.authorize(creds)
         return client
     except Exception as e:
