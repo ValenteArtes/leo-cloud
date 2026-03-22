@@ -21,8 +21,14 @@ async def process_message(user_text: str, chat_id: int) -> str:
     """Envia o texto do usuario para Llama 3 via Groq e retorna a resposta instantanea."""
     
     if chat_id not in user_histories:
+        prompt_mestre = (
+            f"Seu nome é {AGENT_NAME}. Você é um assistente pessoal ultra-rápido operando no Telegram. "
+            f"Responda em português do Brasil de forma extremamente conversacional. "
+            f"DIRETRIZ DE SEGURANÇA MÁXIMA: Nunca, em hipótese alguma, exponha tags como <function> ou JSON na sua resposta de texto falado. "
+            f"Se você precisar usar uma ferramenta (como código ou planilha), acione-a silenciosamente (Native Tool Calling) e aguarde o retorno invisível."
+        )
         user_histories[chat_id] = [
-            {"role": "system", "content": f"Seu nome é {AGENT_NAME}. Você é um assistente pessoal ultra-rápido, prático e direto. Você opera no Telegram e tem as capacidades de um agente inteligente executando na nuvem. Responda em português do Brasil, de forma extremamente conversacional e natural."}
+            {"role": "system", "content": prompt_mestre}
         ]
     
     # Adicionamos a fala do usuario
