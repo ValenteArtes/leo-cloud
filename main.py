@@ -1,10 +1,26 @@
 import asyncio
 import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from agent import process_message, transcribe_audio, synthesize_speech
 
-# Token fornecido pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
+# --- DUMMY SERVER PARA O RENDER FICAR FELIZ E LIBERAR O PLANO FREE ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b"Bot is running on Render Free Tier!")
+
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    server.serve_forever()
+# ----------------------------------------------------------------------
+
+# Token fornecida pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "7571564726:AAFW5sQKdwfRlM8LRHNxDxqNZmuHj7glUQo")
 
 # Trava de Segurança: Só responde ao Dono (João Batista)
@@ -94,6 +110,9 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+
+    print("Iniciando servidor fantasma na porta 10000 para plano Free...")
+    threading.Thread(target=run_dummy_server, daemon=True).start()
 
     print("Bot está rodando! Pressione Ctrl+C para parar.")
     app.run_polling()
