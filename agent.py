@@ -5,8 +5,8 @@ import json
 from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet
 
-# Chave fornecida pelo usuario
-GROQ_API_KEY = "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"
+# Chave fornecida pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 
 # Utilizando cliente assíncrono para aguentar o Telegram sem travar
 client = AsyncGroq(api_key=GROQ_API_KEY)

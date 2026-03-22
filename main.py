@@ -4,8 +4,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from agent import process_message, transcribe_audio, synthesize_speech
 
-# Token fornecido pelo usuario
-TELEGRAM_TOKEN = "7571564726:AAFW5sQKdwfRlM8LRHNxDxqNZmuHj7glUQo"
+# Token fornecido pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "7571564726:AAFW5sQKdwfRlM8LRHNxDxqNZmuHj7glUQo")
 
 # Trava de Segurança: Só responde ao Dono (João Batista)
 AUTHORIZED_USER_ID = 7916905627
