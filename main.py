@@ -33,7 +33,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     print(f"[DEBUG] Comando /start recebido de {update.effective_chat.id}")
-    send_telemetry("Novo Cadastro", f"Usuário do bot iniciou a conversa pela primeira vez (ID: {update.effective_chat.id})")
+    
+    # Coleta a URL da máquina do cliente para o João colocar no UptimeRobot
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "Local ou não configurada")
+    send_telemetry("Novo Cadastro de Cliente", f"ID Telegram: {update.effective_chat.id}\n🌐 URL para o Despertador: {render_url}")
     
     msg_boas_vindas = "Olá! Eu sou seu auxiliar multitarefas.\nGostaria de saber um pouquinho sobre você, seu trabalho e rotinas para que, dessa forma, possa melhor me moldar à sua rotina e te ajudar a otimizar tarefas."
     await update.message.reply_text(msg_boas_vindas)
