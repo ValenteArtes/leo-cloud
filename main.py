@@ -1,6 +1,7 @@
 import asyncio
 import os
 import threading
+import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
@@ -54,6 +55,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     response = await process_message(text, chat_id)
     await update.message.reply_text(response)
+
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    if AUTHORIZED_USER_ID != 0 and chat_id != AUTHORIZED_USER_ID:
+        return
+
+    # User can send a photo with or without text
+    text = update.message.caption or "Analise os detalhes desta imagem cuidadosamente."
+    print(f"[DEBUG] Foto recebida. Caption: {text}")
+    
+    await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+    
+    try:
+        # Pega a foto em melhor qualidade
+        photo_file = await update.message.photo[-1].get_file()
+        file_path = f"temp_photo_{chat_id}.jpg"
+        await photo_file.download_to_drive(file_path)
+        
+        with open(file_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            
+        os.remove(file_path)
+        
+        response = await process_message(text, chat_id, base64_image=base64_image)
+        await update.message.reply_text(response)
+        
+    except Exception as e:
+        print(f"[!] Erro ao processar foto: {e}")
+        await update.message.reply_text("Desculpe, tive um tropeço ao tentar processar esta imagem.")
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -117,6 +147,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
     print("Iniciando servidor fantasma na porta 10000 para plano Free...")
     threading.Thread(target=run_dummy_server, daemon=True).start()
