@@ -187,8 +187,9 @@ async def process_message(user_text: str, chat_id: int) -> str:
             return final_answer
             
     except Exception as e:
-        print(f"[!] Erro de comunicacao com a Groq API: {e}")
-        return "Desculpe, minha mente Llama 3 acabou de ter um tropeço na conexão com os servidores."
+        error_msg = f"Opa! O leão de chácara do Google/OpenRouter me bloqueou. O motivo exato escrito por eles foi:\n\n`{str(e)}`"
+        print(f"[!] Erro de comunicacao com a API: {e}")
+        return error_msg
 
 async def transcribe_audio(file_path: str) -> str:
     """Envia o arquivo de audio para o modelo Whisper da Groq (Grátis e veloz)."""
