@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual do Agente - Léo Cloud SaaS</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        .alert { background-color: #fce4e4; border: 1px solid #fcc2c3; padding: 15px; border-radius: 5px; color: #cc0033; font-weight: bold; }
+        ul, li { margin-bottom: 10px; }
+        code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: Consolas, monospace; color: #e74c3c; }
+        .mermaid { background: #f8f9fa; padding: 20px; border-radius: 8px; font-family: monospace; white-space: pre; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <h1>Documentação Técnica Oficial: Léo Cloud (SaaS)</h1>
+
+    <div class="alert">
+        ⚠️ ESTE DOCUMENTO É CONFIDENCIAL.<br>
+        Ele contém as chaves corporativas, tokens do Telegram e senhas mestras. Guarde localmente na sua máquina e nunca suba esse documento aberto para o Github, para que usuários na internet não roubem as suas conexões.
+    </div>
+
+    <h2>1. Acessos e Chaves Mestras</h2>
+    <p>Estas são as raízes da empresa. As chaves documentadas abaixo são as da sua máquina Matriz Oficial.</p>
+    <ul>
+        <li><strong>Groq API Key (Mente Llama 3)</strong>: <code>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</code></li>
+        <li><strong>Telegram Master Token (Seu Bot Pessoal/Dashboard)</strong>: <code>7571564726:AAFW5sQKdwfRlM8LRHNxDxqNZmuHj7glUQo</code></li>
+        <li><strong>Master Chat ID (ID Pessoal do Diretor João)</strong>: <code>7916905627</code></li>
+        <li><strong>Conta Render</strong>: Login corporativo sincronizado via Conta GitHub (<code>ValenteArtes</code>). Gerencia-se via https://dashboard.render.com</li>
+    </ul>
+
+    <h2>2. Visão de Hierarquia e Arquitetura do Sistema</h2>
+    <p>O Software foi projetado em <strong>Python Assíncrono</strong>, seguindo a arquitetura em escala (Multi-Tenant) com "Franquias".</p>
+    <ul>
+        <li><strong>Repositório Central</strong>: O Código Mestre reside em <code>https://github.com/ValenteArtes/leo-cloud</code>.</li>
+        <li><strong>Blueprint Instalador (render.yaml)</strong>: Engatilha a importação nativa na máquina virtual Web Service do Render em 1-clique.</li>
+        <li><strong>Servidor Web (main.py)</strong>: Possui um Servidor HTTP Fantasma (Porta 10000) escondido numa thread paralela que valida a instância 24h por dia no plano Free ($0).</li>
+        <li><strong>Inteligência (agent.py)</strong>: Usa "Llama 3.1 8B Instant" (Groq) e mapeia ferramentas via Voice (Edge TTS).</li>
+        <li><strong>Rastreio Ético Corporativo (telemetry.py)</strong>: Toda vez que um cliente do amigo chama a ação sheet.py ou inicia conversa, um relatório particular notifica o celular do João (ID Master).</li>
+    </ul>
+
+    <h2>3. Mapas de Fluxo (Workflows de Rota)</h2>
+    <div class="mermaid">
+A [Sua Máquina / GitHub Mestre] --> |Envia update global automático| B (Render do Cliente / Amigo)
+B <--> |Bot Telegram da Franquia| C [Usuario Final Mandando Áudio]
+
+* Arquitetura de Software do Robô Interna:
+1. Receptor API Telegram -> Processa Audio pelo Groq Whisper
+2. Agent.py e Llama decidem -> É uma Ação ou Conversa Normal?
+3. Se for Ação -> Executa Python/Planilha -> Notifica Antena de Telemetria -> Seu Celular recebe o Bip
+4. Se for Conversa -> Gera Áudio Inteligente via TTS Antonio -> Devolve pro Usuário final
+    </div>
+
+    <h2>4. Funcionalidades Expandíveis e Oportunidades de Venda (Subprodutos)</h2>
+    <p>O Produto Alpha possui potencial fortíssimo de escala se você aplicar para nichos específicos.</p>
+    <ul>
+        <li><strong>Gestor Pessoal Humanizado</strong>: A instrução do bot obriga extrair rotinas íntimas/empresariais gerando laços humanizados.</li>
+        <li><strong>Integração Nativa Multi-Sheets Financeiro</strong>: Bot insere planilhas direto via app de mensagens ("Caixa Diário via WhatsApp").</li>
+        <li><strong>Dashboards Automatizados sem Custo</strong>: A Antena de Telemetria permite monitoramento e upsell de pacotes premium sem custo de sistemas SaaS.</li>
+        <li><strong>Scripting Dinâmico na Nuvem</strong>: O Léo pode construir scripts próprios e se auto-ajustar em servidores virtuais rodando cálculos complexos, útil para analistas e Data Science.</li>
+    </ul>
+
+</body>
+</html>

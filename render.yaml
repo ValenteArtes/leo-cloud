@@ -15,5 +15,9 @@ services:
         value: Léo
       - key: AGENT_VOICE
         value: pt-BR-AntonioNeural
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
       - key: GOOGLE_CREDENTIALS
         sync: false

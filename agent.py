@@ -6,13 +6,28 @@ from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet
 from telemetry import send_telemetry
 
-# Chave fornecida pelo usuario (usa variavel de ambiente no Render, hardcoded como fallback local)
+# Chaves de IA Híbrida 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+LLM_MODEL = os.environ.get("LLM_MODEL", "llama-3.1-8b-instant")
 AGENT_NAME = os.environ.get("AGENT_NAME", "Léo")
 AGENT_VOICE = os.environ.get("AGENT_VOICE", "pt-BR-AntonioNeural")
 
-# Utilizando cliente assíncrono para aguentar o Telegram sem travar
-client = AsyncGroq(api_key=GROQ_API_KEY)
+# Utilizando cliente Groq fixo para transcrição de áudio e fallback
+groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+
+# Se o usuário definir o OpenRouter, ativamos o cérebro avançado (Claude / Gemini)
+llm_client = groq_client
+if OPENROUTER_API_KEY:
+    try:
+        from openai import AsyncOpenAI
+        llm_client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=OPENROUTER_API_KEY
+        )
+    except ImportError:
+        print("[!] OpenAI SDK não instalado, fallback para Groq")
+
 
 # Dict para guardar o contexto de conversa por chat_id
 user_histories = {}
@@ -34,9 +49,11 @@ async def process_message(user_text: str, chat_id: int) -> str:
     # Adicionamos a fala do usuario
     user_histories[chat_id].append({"role": "user", "content": user_text})
     
-    # Manter o tamanho do historico seguro para nao estourar os tokens (System + ultimas 20 mensagens para acomodar tool calls)
-    if len(user_histories[chat_id]) > 21:
-        user_histories[chat_id] = [user_histories[chat_id][0]] + user_histories[chat_id][-20:]
+    # Manter o tamanho do historico seguro
+    # Se estiver usando OpenRouter premium (Claude/Gemini) permitimos um cofre maior de lembranças (100 msgs)
+    max_history = 100 if OPENROUTER_API_KEY else 21
+    if len(user_histories[chat_id]) > max_history:
+        user_histories[chat_id] = [user_histories[chat_id][0]] + user_histories[chat_id][-(max_history-1):]
         
     groq_tools = [
         {
@@ -108,10 +125,10 @@ async def process_message(user_text: str, chat_id: int) -> str:
     try:
         # Loop para processar múltiplas tool calls se houver
         while True:
-            # llama-3.1-8b-instant suporta Tool Calling / Function Calling nativo
-            response = await client.chat.completions.create(
+            # Rota de inteligência híbrida (Pode ser Claude, Llama ou Gemini via OpenRouter)
+            response = await llm_client.chat.completions.create(
                 messages=user_histories[chat_id],
-                model="llama-3.1-8b-instant",
+                model=LLM_MODEL,
                 temperature=0.5,
                 max_tokens=1024,
                 tools=groq_tools,
@@ -119,7 +136,13 @@ async def process_message(user_text: str, chat_id: int) -> str:
             )
             
             response_message = response.choices[0].message
-            user_histories[chat_id].append(response_message) # Append the complete message object for tool state
+            # Converter a resposta num dict se vier do openai (pra não quebrar o append da Groq SDK original se for fallback)
+            # Mas as bibliotecas Openai e Groq tem objetos parecidos, user_histories precisa anexar o dict cru ou o objeto.
+            try:
+                user_histories[chat_id].append(response_message.model_dump(exclude_unset=True))
+            except AttributeError:
+                # Caso esteja usando Groq SDK
+                user_histories[chat_id].append(response_message)
             
             tool_calls = response_message.tool_calls
             
@@ -168,10 +191,10 @@ async def process_message(user_text: str, chat_id: int) -> str:
         return "Desculpe, minha mente Llama 3 acabou de ter um tropeço na conexão com os servidores."
 
 async def transcribe_audio(file_path: str) -> str:
-    """Envia o arquivo de audio para o modelo Whisper da Groq para transcriçao super rapida."""
+    """Envia o arquivo de audio para o modelo Whisper da Groq (Grátis e veloz)."""
     try:
         with open(file_path, "rb") as file:
-            transcription = await client.audio.transcriptions.create(
+            transcription = await groq_client.audio.transcriptions.create(
               file=(file_path, file.read()),
               model="whisper-large-v3-turbo",
               language="pt"
