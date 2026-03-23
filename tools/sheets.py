@@ -52,3 +52,19 @@ def append_to_sheet(sheet_url: str, tab_name: str, row_data: list) -> str:
         return f"Erro: Aba '{tab_name}' não encontrada dentro da planilha."
     except Exception as e:
         return f"Erro ao manipular a planilha: {str(e)}"
+
+def read_from_sheet(sheet_url: str, tab_name: str) -> str:
+    """
+    Ferramenta para ler todos os dados acumulados (histórico) na aba do Google Sheets.
+    """
+    client = get_sheets_client()
+    if not client:
+        return "Erro: Credenciais do Google Sheets não encontradas ou inválidas."
+        
+    try:
+        sheet = client.open_by_url(sheet_url)
+        worksheet = sheet.worksheet(tab_name)
+        records = worksheet.get_all_values()
+        return json.dumps(records, ensure_ascii=False)
+    except Exception as e:
+        return f"Erro na leitura da aba do Sheets: {str(e)}"

@@ -3,7 +3,7 @@ from groq import AsyncGroq
 import edge_tts
 import json
 from tools.self_maintain import execute_python_code, save_new_tool
-from tools.sheets import append_to_sheet
+from tools.sheets import append_to_sheet, read_from_sheet
 from telemetry import send_telemetry
 
 # Chaves de IA Híbrida 
@@ -41,7 +41,7 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
             f"Responda em português do Brasil de forma direta. "
             f"DIRETRIZ DE PERSONALIDADE: Você é um Arquiteto de Software Sênior altamente lógico, objetivo e direto (estilo DeepSeek/Linux). É ESTRITAMENTE PROIBIDO o uso de qualquer EMOJI nas suas respostas gerais. Seja clínico, técnico e limpo. "
             f"DIRETRIZ DE MEMÓRIA DE DADOS: O link da Planilha padrão do seu Mestre João é: `https://docs.google.com/spreadsheets/d/1yem69FdQaffZ71mEhzmp5K_kwr6lP-QaBcZWQElpgDw/edit?hl=pt-PT&gid=0#gid=0`. A aba financeira é 'Página1'. "
-            f"DIRETRIZ NUTRICIONAL (MÁXIMA PRIORIDADE): Quando o Mestre João ou a esposa dele enviarem a foto de qualquer COMIDA/REFEIÇÃO, ative o 'Modo Nutricionista'. 1. Você deve analisar a imagem e estimar as calorias totais do prato isolando cada alimento (usando sua visão computacional embutida). 2. ACIONE A FERRAMENTA 'append_to_sheet' na aba 'Nutricao' salvando a data atual, os alimentos informados e o total de calorias (sem que eles precisem pedir). 3. Ao devolver o texto, informe docemente e com carinhas felizes o cálculo pro casal e resuma quantas calorias faltam para bater a meta ideal diária de 2000 calorias de um ser humano normal. Quebre a sua regra de 'sem emojis' APENAS quando falar de comida com a esposa do chefe. "
+            f"DIRETRIZ NUTRICIONAL (MÁXIMA PRIORIDADE): Quando o Mestre João ou a esposa dele enviarem a foto de COMIDA, ative o 'Modo Nutricionista'. 1. Inicie analisando as calorias da foto atual usando seus olhos virtuais. 2. USE A FERRAMENTA 'read_from_sheet' para ler a aba 'Nutricao' da Planilha e SOME as calorias de TUDO o que eles já comeram na DATA DE HOJE baseando-se nas linhas da planilha. 3. USE A FERRAMENTA 'append_to_sheet' salvando a refeição da foto atual. 4. No chat, faça um resumo doce da caloria da foto e depois apresente o SALDO FINAL DO DIA da pessoa somado (refeições velhas lidas + a refeição atual). Avise com festinha quantos pontos/calorias a esposa ainda tem disponíveis ou se estouraram a meta de 2000! "
             f"DIRETRIZ DE LOMBO MULTIMODAL: Você possui os olhos Gemini Flash 2.0 (Visão Computacional) ativos e lê perfeitamente Base64. "
             f"DIRETRIZ DE SEGURANÇA MÁXIMA: Nunca, em hipótese alguma, exponha tags como <function> ou JSON na sua resposta textual para o Telegram. "
             f"Se você precisar usar uma ferramenta, acione-a silenciosamente (Native Tool Calling) com argumentos válidos em string."
@@ -110,6 +110,27 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         {
             "type": "function",
             "function": {
+                "name": "read_from_sheet",
+                "description": "Lê todas as linhas e dados acumulados de uma aba da planilha. Útil para verificar limites diários de calorias ou históricos de gastos recentes.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "sheet_url": {
+                            "type": "string",
+                            "description": "O link completo (URL) da planilha do Google."
+                        },
+                        "tab_name": {
+                            "type": "string",
+                            "description": "O nome da aba na parte inferior da planilha (ex: 'Nutricao' ou 'Despesas')."
+                        }
+                    },
+                    "required": ["sheet_url", "tab_name"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "append_to_sheet",
                 "description": "Adiciona uma nova linha de dados em uma planilha do Google Sheets. Use para finanças, tarefas ou diários a pedido do usuário.",
                 "parameters": {
@@ -171,6 +192,8 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                         function_response = execute_python_code(function_args.get("code"))
                     elif function_name == "save_new_tool":
                         function_response = save_new_tool(function_args.get("tool_name"), function_args.get("code"))
+                    elif function_name == "read_from_sheet":
+                        function_response = read_from_sheet(function_args.get("sheet_url"), function_args.get("tab_name"))
                     elif function_name == "append_to_sheet":
                         function_response = append_to_sheet(
                             function_args.get("sheet_url"),
