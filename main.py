@@ -2,6 +2,7 @@ import asyncio
 import os
 import threading
 import base64
+import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
@@ -41,6 +42,31 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     msg_boas_vindas = "Olá! Eu sou seu auxiliar multitarefas.\nGostaria de saber um pouquinho sobre você, seu trabalho e rotinas para que, dessa forma, possa melhor me moldar à sua rotina e te ajudar a otimizar tarefas."
     await update.message.reply_text(msg_boas_vindas)
+
+async def daily_motivation(context: ContextTypes.DEFAULT_TYPE):
+    from agent import process_message
+    
+    chat_id_str = os.environ.get("MASTER_CHAT_ID", "0")
+    if not chat_id_str.isdigit() or chat_id_str == "0":
+        print("[!] CronJob abortado: MASTER_CHAT_ID invalido.")
+        return
+        
+    chat_id = int(chat_id_str)
+    print(f"[*] Disparando Bom Dia Proativo para o CEO (ID: {chat_id})...")
+    
+    prompt = (
+        "ISSO É UM EVENTO AUTOMÁTICO DE NUVEM (SEU CRON JOB de despertar ativou). "
+        "1. Dê 'Bom dia, Mestre!' e avise que o dia já começou com poder total. "
+        "2. Cite uma frase famosa intensa e motivadora sobre vitória, construção e persistência. "
+        "3. Como o braço direito do CEO, lembre-o com clareza dos dois combinados inquebráveis do dia: [Teto de Gastos Domésticos Limitado: R$ 50,00] e [Carga Nutricional Liberada: Máximo 2000 Calorias]. "
+        "4. Encerre com a frase em negrito: 'Bora pra cima!'"
+    )
+    
+    try:
+        response = await process_message(prompt, chat_id)
+        await context.bot.send_message(chat_id=chat_id, text=response)
+    except Exception as e:
+        print(f"[!] Falha na mensagem de Bom Dia: {e}")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -143,6 +169,13 @@ def main():
         
     print("Iniciando o Bot do Léo na Nuvem...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+    # Programa o despertador para as 08:00 no Brasil (11:00 em Greenwich/UTC)
+    time_8am = datetime.time(hour=11, minute=0, tzinfo=datetime.timezone.utc)
+    app.job_queue.run_daily(daily_motivation, time_8am)
+    
+    # CÓDIGO ESPECIAL DE DEMONSTRAÇÃO: Vai disparar 20 segundos depois de você mandar o git push!
+    app.job_queue.run_once(daily_motivation, 20)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
