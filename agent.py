@@ -2,7 +2,6 @@ import os
 from groq import AsyncGroq
 import edge_tts
 import json
-from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet, read_from_sheet
 from tools.search import perform_web_search
 from tools.document import generate_document
@@ -77,44 +76,7 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         user_histories[chat_id] = [user_histories[chat_id][0]] + user_histories[chat_id][-(max_history-1):]
         
     groq_tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "execute_python_code",
-                "description": "Executa um bloco de código Python dinamicamente. Use isso para calcular valores matemáticos complexos, raspar a internet, realizar rotinas de teste ou qualquer tarefa que sua mente LLM não consiga fazer (como saber o dia de hoje, cálculos exatos). Retorna a saída do terminal (stdout).",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "O código Python completo e auto-contido a ser executado. Oculte formatação Markdown (```python) e envie apenas o script cru."
-                        }
-                    },
-                    "required": ["code"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "save_new_tool",
-                "description": "Cria e salva um novo arquivo .py na pasta tools para adicionar uma nova habilidade permanente ao seu próprio sistema (Auto-Upgrade).",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "tool_name": {
-                            "type": "string",
-                            "description": "O nome do arquivo a ser salvo, ex: 'calculadora.py' ou 'cotacao_dolar'."
-                        },
-                        "code": {
-                            "type": "string",
-                            "description": "O código Python completo que será salvo no arquivo."
-                        }
-                    },
-                    "required": ["tool_name", "code"]
-                }
-            }
-        },
+
         {
             "type": "function",
             "function": {
@@ -262,11 +224,7 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                     print(f"[*] A Mente Neural acionou a habilidade: {function_name}()")
                     print(f"[*] Argumentos: {function_args}")
                     
-                    if function_name == "execute_python_code":
-                        function_response = execute_python_code(function_args.get("code"))
-                    elif function_name == "save_new_tool":
-                        function_response = save_new_tool(function_args.get("tool_name"), function_args.get("code"))
-                    elif function_name == "read_from_sheet":
+                    if function_name == "read_from_sheet":
                         function_response = read_from_sheet(function_args.get("sheet_url"), function_args.get("tab_name"))
                     elif function_name == "perform_web_search":
                         function_response = perform_web_search(function_args.get("query"))
