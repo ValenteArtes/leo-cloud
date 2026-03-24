@@ -29,6 +29,27 @@ def get_sheets_client():
         print(f"[!] Erro de autenticação no Google Sheets: {e}")
         return None
 
+def _get_or_create_worksheet(sheet, tab_name: str):
+    import unicodedata
+    def norm(s):
+        return ''.join(c for c in unicodedata.normalize('NFD', str(s)) if unicodedata.category(c) != 'Mn').lower().strip()
+    
+    target = norm(tab_name)
+    
+    # 1. Procura pela coincidencia exata (com acentos)
+    try:
+        return sheet.worksheet(tab_name)
+    except:
+        pass
+        
+    # 2. Procura pela normalizada ignorando Ç e acentos
+    for ws in sheet.worksheets():
+        if norm(ws.title) == target:
+            return ws
+            
+    # 3. A aba não existe me nenhum formato. O sistema CRIA SOZINHO.
+    return sheet.add_worksheet(title=tab_name.replace("ç", "c").replace("ã", "a"), rows=200, cols=10)
+
 def append_to_sheet(sheet_url: str, tab_name: str, row_data: list) -> str:
     """
     Adiciona uma nova linha com os dados solicitados a uma aba especifica da planilha.
@@ -39,17 +60,15 @@ def append_to_sheet(sheet_url: str, tab_name: str, row_data: list) -> str:
         return "Erro: Credenciais do Google Sheets não encontradas ou inválidas."
         
     try:
-        # Abre a planilha pelo link e seleciona a aba (Worksheet)
+        # Abre a planilha pelo link e seleciona a aba (auto-criando se João esquecer)
         sheet = client.open_by_url(sheet_url)
-        worksheet = sheet.worksheet(tab_name)
+        worksheet = _get_or_create_worksheet(sheet, tab_name)
         
         # Insere a nova linha no fim da planilha
         worksheet.append_row(row_data)
-        return f"Sucesso! Os dados {row_data} foram inseridos na aba '{tab_name}' da planilha."
+        return f"Sucesso! Os dados {row_data} foram inseridos na aba '{worksheet.title}'."
     except gspread.exceptions.SpreadsheetNotFound:
-        return "Erro: Planilha não encontrada. Verifique se o link está correto e se você COMPARTILHOU a planilha com o e-mail da conta de serviço."
-    except gspread.exceptions.WorksheetNotFound:
-        return f"Erro: Aba '{tab_name}' não encontrada dentro da planilha."
+        return "Erro: Planilha não encontrada. O link pode estar errado ou faltou compartilhar com o e-mail do bot."
     except Exception as e:
         return f"Erro ao manipular a planilha: {str(e)}"
 
@@ -63,8 +82,12 @@ def read_from_sheet(sheet_url: str, tab_name: str) -> str:
         
     try:
         sheet = client.open_by_url(sheet_url)
-        worksheet = sheet.worksheet(tab_name)
+        worksheet = _get_or_create_worksheet(sheet, tab_name)
+        
         records = worksheet.get_all_values()
+        if not records or len(records) == 0:
+            return "Aba vazia. Nenhum histórico salvo ainda."
+            
         return json.dumps(records, ensure_ascii=False)
     except Exception as e:
         return f"Erro na leitura da aba do Sheets: {str(e)}"
