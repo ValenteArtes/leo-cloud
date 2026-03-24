@@ -4,6 +4,7 @@ import edge_tts
 import json
 from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet, read_from_sheet
+from tools.search import perform_web_search
 from telemetry import send_telemetry
 
 # Chaves de IA Híbrida 
@@ -133,6 +134,23 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         {
             "type": "function",
             "function": {
+                "name": "perform_web_search",
+                "description": "Busca informações atualizadas e em tempo real na internet (Web Search/Google). Útil para notícias, preços, previsão do tempo, cotações e fatos recentes do dia de hoje.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "O termo ou frase exata a ser pesquisada na web."
+                        }
+                    },
+                    "required": ["query"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "append_to_sheet",
                 "description": "Adiciona uma nova linha de dados em uma planilha do Google Sheets. Use para finanças, tarefas ou diários a pedido do usuário.",
                 "parameters": {
@@ -196,6 +214,8 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                         function_response = save_new_tool(function_args.get("tool_name"), function_args.get("code"))
                     elif function_name == "read_from_sheet":
                         function_response = read_from_sheet(function_args.get("sheet_url"), function_args.get("tab_name"))
+                    elif function_name == "perform_web_search":
+                        function_response = perform_web_search(function_args.get("query"))
                     elif function_name == "append_to_sheet":
                         function_response = append_to_sheet(
                             function_args.get("sheet_url"),
