@@ -10,6 +10,8 @@ scopes = [
 
 import json
 
+DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1yem69FdQaffZ71mEhzmp5K_kwr6lP-QaBcZWQElpgDw/edit?hl=pt-PT&gid=0#gid=0"
+
 def get_sheets_client():
     # Verifica primeiro se foi passado via variavel de ambiente (Deploy Rapido Render)
     env_creds = os.environ.get("GOOGLE_CREDENTIALS")
@@ -55,6 +57,9 @@ def append_to_sheet(sheet_url: str, tab_name: str, row_data: list) -> str:
     Adiciona uma nova linha com os dados solicitados a uma aba especifica da planilha.
     Isso e util para registro de gastos, tarefas e diários.
     """
+    if not sheet_url or "google.com" not in sheet_url:
+        sheet_url = DEFAULT_SHEET_URL
+        
     client = get_sheets_client()
     if not client:
         return "Erro: Credenciais do Google Sheets não encontradas ou inválidas."
@@ -76,6 +81,9 @@ def read_from_sheet(sheet_url: str, tab_name: str) -> str:
     """
     Ferramenta para ler todos os dados acumulados (histórico) na aba do Google Sheets.
     """
+    if not sheet_url or "google.com" not in sheet_url:
+        sheet_url = DEFAULT_SHEET_URL
+        
     client = get_sheets_client()
     if not client:
         return "Erro: Credenciais do Google Sheets não encontradas ou inválidas."
