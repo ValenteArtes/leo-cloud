@@ -242,9 +242,6 @@ def main():
     # Programa a Agenda Noturna para as 21:00 no Brasil (00:00 UTC)
     time_9pm = datetime.time(hour=0, minute=0, tzinfo=datetime.timezone.utc)
     app.job_queue.run_daily(nightly_agenda, time_9pm)
-    
-    # CÓDIGO ESPECIAL DE DEMONSTRAÇÃO: Vai disparar 30 segundos depois de você mandar o git push!
-    app.job_queue.run_once(afternoon_agenda, 30)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
