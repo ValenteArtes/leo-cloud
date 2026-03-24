@@ -6,6 +6,7 @@ from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet, read_from_sheet
 from tools.search import perform_web_search
 from tools.document import generate_document
+from tools.pdf_maker import generate_pdf_quote
 from telemetry import send_telemetry
 
 # Chaves de IA Híbrida 
@@ -170,6 +171,24 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         {
             "type": "function",
             "function": {
+                "name": "generate_pdf_quote",
+                "description": "Ferramenta de Vendas/Consultoria: Desenha e entrega um PDF de Orçamento luxuoso, com Logo e Tabelas Comerciais pro Cliente final baixar.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "client_name": {"type": "string", "description": "Nome do Cliente ou Empresa Destinatária."},
+                        "content_html": {"type": "string", "description": "O corpo narrativo descritivo dos itens EM HTML CRU. Abuse de tags <table>, <tr>, <th>, <td>, <ul> para montar faturas deslumbrantes!"},
+                        "total_price": {"type": "string", "description": "O custo final impresso em moeda (Ex: R$ 500,00)."},
+                        "filename": {"type": "string", "description": "O título enxuto do arquivo criado (ex: 'Fatura_Apple')."},
+                        "logo_url": {"type": "string", "description": "Link público na web da imagem de Logomarca do empreendedor (Opcional, mas muito chique)."}
+                    },
+                    "required": ["client_name", "content_html", "total_price", "filename"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "append_to_sheet",
                 "description": "Adiciona uma nova linha de dados em uma planilha do Google Sheets. Use para finanças, tarefas ou diários a pedido do usuário.",
                 "parameters": {
@@ -237,6 +256,14 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                         function_response = perform_web_search(function_args.get("query"))
                     elif function_name == "generate_document":
                         function_response = generate_document(function_args.get("content"), function_args.get("filename"), function_args.get("format"))
+                    elif function_name == "generate_pdf_quote":
+                        function_response = generate_pdf_quote(
+                            function_args.get("client_name"), 
+                            function_args.get("content_html"),
+                            function_args.get("total_price"),
+                            function_args.get("filename"),
+                            function_args.get("logo_url", "")
+                        )
                     elif function_name == "append_to_sheet":
                         function_response = append_to_sheet(
                             function_args.get("sheet_url"),
