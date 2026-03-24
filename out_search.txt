@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "C:\Users\jbati\.gemini\antigravity\playground\leo-cloud\test_search.py", line 1, in <module>
+    from tools.search import perform_web_search
+  File "C:\Users\jbati\.gemini\antigravity\playground\leo-cloud\tools\search.py", line 2, in <module>
+    from bs4 import BeautifulSoup
+ModuleNotFoundError: No module named 'bs4'

@@ -44,3 +44,6 @@ yarl==1.23.0
 openai
 APScheduler==3.10.4
 tavily-python
+xhtml2pdf
+jinja2
+stripe

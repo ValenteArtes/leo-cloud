@@ -7,6 +7,7 @@ from tools.sheets import append_to_sheet, read_from_sheet
 from tools.search import perform_web_search
 from tools.document import generate_document
 from tools.pdf_maker import generate_pdf_quote
+from tools.payments import generate_payment_link
 from telemetry import send_telemetry
 
 # Chaves de IA Híbrida 
@@ -189,6 +190,21 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         {
             "type": "function",
             "function": {
+                "name": "generate_payment_link",
+                "description": "Ferramenta de Vendas: Emite/Gera um Link Criptografado do Banco STRIPE (Checkout) para enviar ao cliente para ele passar o Cartão de Crédito/Pix para comprar o seu produto ou serviço SaaS.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "product_name": {"type": "string", "description": "Título do produto alvo sendo vendido (ex: Licença Léo Cloud Anual)."},
+                        "amount_brl": {"type": "number", "description": "O Preço cru exato a ser cobrado usando pontos para quebrar decimais e nenhum cifrão (Ex: usar 45.90 para representar R$ 45,90 ou 1500.00 para R$ 1.500,00)."}
+                    },
+                    "required": ["product_name", "amount_brl"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "append_to_sheet",
                 "description": "Adiciona uma nova linha de dados em uma planilha do Google Sheets. Use para finanças, tarefas ou diários a pedido do usuário.",
                 "parameters": {
@@ -264,6 +280,8 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                             function_args.get("filename"),
                             function_args.get("logo_url", "")
                         )
+                    elif function_name == "generate_payment_link":
+                        function_response = generate_payment_link(function_args.get("product_name"), function_args.get("amount_brl"))
                     elif function_name == "append_to_sheet":
                         function_response = append_to_sheet(
                             function_args.get("sheet_url"),
