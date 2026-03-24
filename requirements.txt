@@ -43,4 +43,4 @@ urllib3==2.6.3
 yarl==1.23.0
 openai
 APScheduler==3.10.4
-beautifulsoup4==4.12.3
+tavily-python
