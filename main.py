@@ -58,8 +58,8 @@ async def daily_motivation(context: ContextTypes.DEFAULT_TYPE):
         "ISSO É UM EVENTO AUTOMÁTICO DE NUVEM (SEU CRON JOB de despertar ativou). "
         "1. Dê 'Bom dia, Mestre!' e avise que o dia já começou com poder total. "
         "2. Cite uma frase famosa intensa e motivadora sobre vitória, construção e persistência. "
-        "3. Como o braço direito do CEO, lembre-o com clareza dos dois combinados inquebráveis do dia: [Teto de Gastos Domésticos Limitado: R$ 50,00] e [Carga Nutricional Liberada: Máximo 2000 Calorias]. "
-        "4. Encerre com a frase em negrito: 'Bora pra cima!'"
+        "3. Lembre-o com clareza dos dois combinados inquebráveis do dia: [Teto de Gastos Domésticos Limitado: R$ 50,00] e [Carga Nutricional Liberada: Máximo 2000 Calorias]. "
+        "4. Finalmente, conclua PERGUNTANDO ao usuário se ele deseja que você faça a Leitura e Revisão da Agenda dele para o DIA DE HOJE agora!"
     )
     
     try:
@@ -67,6 +67,26 @@ async def daily_motivation(context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=chat_id, text=response)
     except Exception as e:
         print(f"[!] Falha na mensagem de Bom Dia: {e}")
+
+async def afternoon_agenda(context: ContextTypes.DEFAULT_TYPE):
+    from agent import process_message
+    
+    chat_id_str = os.environ.get("MASTER_CHAT_ID", "0")
+    if not chat_id_str.isdigit() or chat_id_str == "0":
+        return
+        
+    chat_id = int(chat_id_str)
+    print(f"[*] Disparando Lembrete Pos-Almoco para o CEO...")
+    
+    prompt = (
+        "ISSO É UM EVENTO AUTOMÁTICO DE NUVEM (SEU CRON JOB PÓS-ALMOÇO). OBRIGATÓRIO: 1. Acione imediatamente sua ferramenta 'read_from_sheet' para ler a aba 'Agenda' da nossa Planilha. 2. Varra todas as linhas lidas procurando os compromissos marcados para a 'DATA DE HOJE'. 3. Escreva um alerta rápido e focado pro chefe no estilo: 'Mestre, espero que o almoço tenha sido excelente! Só passando para não te deixar esquecer os compromissos da tarde/de hoje: [liste os horários]'. Se não achar nada pra hoje, diga de forma alegre que ele está livre de burocracias pelo resto do dia."
+    )
+    
+    try:
+        response = await process_message(prompt, chat_id)
+        await context.bot.send_message(chat_id=chat_id, text=response)
+    except Exception as e:
+        print(f"[!] Falha na mensagem de Tarde: {e}")
 
 async def nightly_agenda(context: ContextTypes.DEFAULT_TYPE):
     from agent import process_message
@@ -194,12 +214,16 @@ def main():
     time_8am = datetime.time(hour=11, minute=0, tzinfo=datetime.timezone.utc)
     app.job_queue.run_daily(daily_motivation, time_8am)
     
+    # Programa o Lembrete Pós-Almoço para 13:00 no Brasil (16:00 UTC)
+    time_1pm = datetime.time(hour=16, minute=0, tzinfo=datetime.timezone.utc)
+    app.job_queue.run_daily(afternoon_agenda, time_1pm)
+    
     # Programa a Agenda Noturna para as 21:00 no Brasil (00:00 UTC)
     time_9pm = datetime.time(hour=0, minute=0, tzinfo=datetime.timezone.utc)
     app.job_queue.run_daily(nightly_agenda, time_9pm)
     
     # CÓDIGO ESPECIAL DE DEMONSTRAÇÃO: Vai disparar 30 segundos depois de você mandar o git push!
-    app.job_queue.run_once(nightly_agenda, 30)
+    app.job_queue.run_once(afternoon_agenda, 30)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
