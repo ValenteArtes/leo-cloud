@@ -110,4 +110,4 @@ def read_from_sheet(sheet_url: str, tab_name: str) -> str:
             
         return json.dumps(records, ensure_ascii=False)
     except Exception as e:
-        return f"Erro na leitura da aba do Sheets: {str(e)}"
+        return f"Erro na leitura da aba do Sheets ({type(e).__name__}): {repr(e)}"
