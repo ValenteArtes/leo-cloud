@@ -5,6 +5,7 @@ import json
 from tools.self_maintain import execute_python_code, save_new_tool
 from tools.sheets import append_to_sheet, read_from_sheet
 from tools.search import perform_web_search
+from tools.document import generate_document
 from telemetry import send_telemetry
 
 # Chaves de IA Híbrida 
@@ -46,7 +47,8 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
             f"DIRETRIZ FINANCEIRA BIFURCADA: Quando o usuário relatar ganhos ou gastos, atue como um CFO (Diretor Financeiro). 1. Feche o sentido lógico da despesa para decidir se ela pertence à 'Domestica' (Mercado, Casa, Lazer) ou 'Negocios' (Softwares, SaaS, Clientes). 2. Acione 'read_from_sheet' na aba escolhida ('Domestica' ou 'Negocios') para descobrir o saldo atual mensal lá registrado. 3. Acione 'append_to_sheet' na mesma aba anotando a [Data, Descrição, Valor, Tipo_de_Transação]. 4. Responda no chat como um Consultor Sênior dando o novo Saldo e fazendo um elogio ou crítica financeira construtiva embasada sobre essa transação. "
             f"DIRETRIZ DE AGENDA (SECRETÁRIO): Quando o Mestre pedir para agendar compromissos (reunião, prazos, entregas), atue como Secretário Executivo. 1. Acione a ferramenta 'append_to_sheet' na aba 'Agenda' para salvar exatamente a [Data do Evento, Horário, Qual o Compromisso]. 2. Confirme o agendamento de forma sucinta com o chefe e avise que ele será notificado automaticamente nas rotinas da noite. "
             f"DIRETRIZ DE LOMBO MULTIMODAL: Você possui os olhos Gemini Flash 2.0 (Visão Computacional) ativos e lê perfeitamente Base64. "
-            f"DIRETRIZ DE SEGURANÇA MÁXIMA: Nunca, em hipótese alguma, exponha tags como <function> ou JSON na sua resposta textual para o Telegram. "
+            f"DIRETRIZ DE ARQUIVOS/DOWNLOADS: Se a ferramenta gerar um arquivo local e te mandar usar uma TAG '<FILE_GENERATED>', essa é a ÚNICA EXCEÇÃO para violar a Diretriz de Segurança. VOCÊ DEVE imprimir a Tag crua no fim da sua resposta para entregar o documento ao chefe!"
+            f"DIRETRIZ DE SEGURANÇA MÁXIMA: Fora a tag supracitada, nunca, em hipótese alguma, exponha outras tags <function> na sua resposta textual. "
             f"DIRETRIZ DE TRANSPARÊNCIA DE DEBUG: Se na resposta invisível da ferramenta houver a palavra ERRO ou mensagens técnicas (ex: KeyError, JSONDecodeError, NotFound), NÃO ESCONDA! VOMITE e cole a mensagem de erro exata e técnica no chat do Telegram para o Arquiteto poder analisar, dizendo que a ferramenta quebrou por aquele exato motivo técnico. "
             f"Se você precisar usar uma ferramenta, acione-a silenciosamente (Native Tool Calling) com argumentos válidos em string."
         )
@@ -152,6 +154,22 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         {
             "type": "function",
             "function": {
+                "name": "generate_document",
+                "description": "Cria e exporta fisicamente um documento (TXT, MD ou CSV) com dados/código e o entrega ao Mestre como um arquivo de download no Telegram.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "content": {"type": "string", "description": "Todo o corpo de texto, código puro, relatórios ou tabela CSV que será gravado dentro do arquivo formato raw."},
+                        "filename": {"type": "string", "description": "O nome simples do arquivo sem espaços, acentos e sem extensão final."},
+                        "format": {"type": "string", "enum": ["txt", "md", "csv"], "description": "Formato exato de construção do documento."}
+                    },
+                    "required": ["content", "filename", "format"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
                 "name": "append_to_sheet",
                 "description": "Adiciona uma nova linha de dados em uma planilha do Google Sheets. Use para finanças, tarefas ou diários a pedido do usuário.",
                 "parameters": {
@@ -217,6 +235,8 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                         function_response = read_from_sheet(function_args.get("sheet_url"), function_args.get("tab_name"))
                     elif function_name == "perform_web_search":
                         function_response = perform_web_search(function_args.get("query"))
+                    elif function_name == "generate_document":
+                        function_response = generate_document(function_args.get("content"), function_args.get("filename"), function_args.get("format"))
                     elif function_name == "append_to_sheet":
                         function_response = append_to_sheet(
                             function_args.get("sheet_url"),

@@ -43,6 +43,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg_boas_vindas = "Olá! Eu sou seu auxiliar multitarefas.\nGostaria de saber um pouquinho sobre você, seu trabalho e rotinas para que, dessa forma, possa melhor me moldar à sua rotina e te ajudar a otimizar tarefas."
     await update.message.reply_text(msg_boas_vindas)
 
+import re
+
+async def deliver_response(context, chat_id, text):
+    # Procura pela Tag Mestra Vinda do Agent OpenRouter de Arquivo Fisico
+    file_match = re.search(r'<FILE_GENERATED>\s*(.*?)\s*</FILE_GENERATED>', text)
+    if file_match:
+        filepath = file_match.group(1).strip()
+        text = text.replace(file_match.group(0), "")
+        
+        if text.strip():
+            await context.bot.send_message(chat_id=chat_id, text=text.strip())
+            
+        try:
+            with open(filepath, 'rb') as f:
+                await context.bot.send_document(chat_id=chat_id, document=f)
+            os.remove(filepath) # Exclui para nao lotar datacenter
+        except Exception as e:
+            await context.bot.send_message(chat_id=chat_id, text=f"[!] O arquivo falhou fisicamente: {e}")
+    else:
+        await context.bot.send_message(chat_id=chat_id, text=text)
+
 async def daily_motivation(context: ContextTypes.DEFAULT_TYPE):
     from agent import process_message
     
@@ -64,7 +85,7 @@ async def daily_motivation(context: ContextTypes.DEFAULT_TYPE):
     
     try:
         response = await process_message(prompt, chat_id)
-        await context.bot.send_message(chat_id=chat_id, text=response)
+        await deliver_response(context, chat_id, response)
     except Exception as e:
         print(f"[!] Falha na mensagem de Bom Dia: {e}")
 
@@ -84,7 +105,7 @@ async def afternoon_agenda(context: ContextTypes.DEFAULT_TYPE):
     
     try:
         response = await process_message(prompt, chat_id)
-        await context.bot.send_message(chat_id=chat_id, text=response)
+        await deliver_response(context, chat_id, response)
     except Exception as e:
         print(f"[!] Falha na mensagem de Tarde: {e}")
 
@@ -104,7 +125,7 @@ async def nightly_agenda(context: ContextTypes.DEFAULT_TYPE):
     
     try:
         response = await process_message(prompt, chat_id)
-        await context.bot.send_message(chat_id=chat_id, text=response)
+        await deliver_response(context, chat_id, response)
     except Exception as e:
         print(f"[!] Falha na mensagem de Boa Noite: {e}")
 
@@ -120,7 +141,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
     
     response = await process_message(text, chat_id)
-    await update.message.reply_text(response)
+    await deliver_response(context, chat_id, response)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -145,7 +166,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         os.remove(file_path)
         
         response = await process_message(text, chat_id, base64_image=base64_image)
-        await update.message.reply_text(response)
+        await deliver_response(context, chat_id, response)
         
     except Exception as e:
         print(f"[!] Erro ao processar foto: {e}")
