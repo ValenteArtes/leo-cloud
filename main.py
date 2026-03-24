@@ -68,6 +68,26 @@ async def daily_motivation(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"[!] Falha na mensagem de Bom Dia: {e}")
 
+async def nightly_agenda(context: ContextTypes.DEFAULT_TYPE):
+    from agent import process_message
+    
+    chat_id_str = os.environ.get("MASTER_CHAT_ID", "0")
+    if not chat_id_str.isdigit() or chat_id_str == "0":
+        return
+        
+    chat_id = int(chat_id_str)
+    print(f"[*] Disparando Analise Noturna de Agenda para o CEO...")
+    
+    prompt = (
+        "ISSO É UM EVENTO AUTOMÁTICO DE NUVEM (SEU CRON JOB DE BOA NOITE DE AGENDA). OBRIGATÓRIO: 1. Acione imediatamente sua ferramenta 'read_from_sheet' para ler a aba 'Agenda' da nossa Planilha padrão. 2. Varra todas as linhas lidas procurando os compromissos marcados especificamente para a 'DATA DE AMANHÃ'. 3. Escreva um resumo detalhado para o Chefe listando os horários e tarefas (ex: 'Amanhã você tem médico às 7:00h, natação às 11:30h...'). Se não achar nada pra amanhã, diga de forma aliviada que o dia está livre. 4. Encerre desejando uma Excelente Noite de sono."
+    )
+    
+    try:
+        response = await process_message(prompt, chat_id)
+        await context.bot.send_message(chat_id=chat_id, text=response)
+    except Exception as e:
+        print(f"[!] Falha na mensagem de Boa Noite: {e}")
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     if AUTHORIZED_USER_ID != 0 and chat_id != AUTHORIZED_USER_ID:
@@ -174,8 +194,12 @@ def main():
     time_8am = datetime.time(hour=11, minute=0, tzinfo=datetime.timezone.utc)
     app.job_queue.run_daily(daily_motivation, time_8am)
     
-    # CÓDIGO ESPECIAL DE DEMONSTRAÇÃO: Vai disparar 20 segundos depois de você mandar o git push!
-    app.job_queue.run_once(daily_motivation, 20)
+    # Programa a Agenda Noturna para as 21:00 no Brasil (00:00 UTC)
+    time_9pm = datetime.time(hour=0, minute=0, tzinfo=datetime.timezone.utc)
+    app.job_queue.run_daily(nightly_agenda, time_9pm)
+    
+    # CÓDIGO ESPECIAL DE DEMONSTRAÇÃO: Vai disparar 30 segundos depois de você mandar o git push!
+    app.job_queue.run_once(nightly_agenda, 30)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
