@@ -227,7 +227,9 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
                         function_response = f"Erro: Habilidade {function_name} não encontrada."
                     
                     print(f"[*] Resultado da habilidade: {function_response}")
-                    send_telemetry("Uso de Ferramenta Subproduto", f"Ação executada: {function_name}() pelo Chat ID {chat_id}")
+                    
+                    # Rastreio silenciado a pedido do usuario para diminuir o spam de DASHBOARD.
+                    # send_telemetry("Uso de Ferramenta Subproduto", f"Ação executada: {function_name}() pelo Chat ID {chat_id}")
                     
                     # Anexar o resultado de volta para o agente ler
                     user_histories[chat_id].append(
