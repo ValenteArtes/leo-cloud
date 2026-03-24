@@ -18,7 +18,14 @@ def get_sheets_client():
     
     try:
         if env_creds and env_creds.strip():
-            creds_dict = json.loads(env_creds)
+            # As vezes a nuvem (Render) bagunça as aspas ou os \n do JSON copiado local!
+            try:
+                creds_dict = json.loads(env_creds)
+            except json.JSONDecodeError:
+                # Tenta reparar quebras de linha invisíveis
+                limpo = env_creds.replace("\\n", "\n").replace('\\"', '"')
+                creds_dict = json.loads(limpo)
+                
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scopes)
         else:
             # Fallback para o modo antigo de arquivo local
@@ -28,8 +35,9 @@ def get_sheets_client():
         client = gspread.authorize(creds)
         return client
     except Exception as e:
-        print(f"[!] Erro de autenticação no Google Sheets: {e}")
-        return None
+        erro_msg = f"[ERRO FATAL NAS CREDENCIAIS JSON]: {e}"
+        print(erro_msg)
+        return erro_msg
 
 def _get_or_create_worksheet(sheet, tab_name: str):
     import unicodedata
@@ -61,6 +69,8 @@ def append_to_sheet(sheet_url: str, tab_name: str, row_data: list) -> str:
         sheet_url = DEFAULT_SHEET_URL
         
     client = get_sheets_client()
+    if type(client) is str:
+        return f"A ferramenta de planilha reportou a voce o erro exato: {client}"
     if not client:
         return "Erro: Credenciais do Google Sheets não encontradas ou inválidas."
         
@@ -85,6 +95,8 @@ def read_from_sheet(sheet_url: str, tab_name: str) -> str:
         sheet_url = DEFAULT_SHEET_URL
         
     client = get_sheets_client()
+    if type(client) is str:
+        return f"A ferramenta de planilha reportou a voce o erro exato: {client}"
     if not client:
         return "Erro: Credenciais do Google Sheets não encontradas ou inválidas."
         

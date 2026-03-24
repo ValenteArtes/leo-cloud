@@ -47,6 +47,7 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
             f"DIRETRIZ DE AGENDA (SECRETÁRIO): Quando o Mestre pedir para agendar compromissos (reunião, prazos, entregas), atue como Secretário Executivo. 1. Acione a ferramenta 'append_to_sheet' na aba 'Agenda' para salvar exatamente a [Data do Evento, Horário, Qual o Compromisso]. 2. Confirme o agendamento de forma sucinta com o chefe e avise que ele será notificado automaticamente nas rotinas da noite. "
             f"DIRETRIZ DE LOMBO MULTIMODAL: Você possui os olhos Gemini Flash 2.0 (Visão Computacional) ativos e lê perfeitamente Base64. "
             f"DIRETRIZ DE SEGURANÇA MÁXIMA: Nunca, em hipótese alguma, exponha tags como <function> ou JSON na sua resposta textual para o Telegram. "
+            f"DIRETRIZ DE TRANSPARÊNCIA DE DEBUG: Se na resposta invisível da ferramenta houver a palavra ERRO ou mensagens técnicas (ex: KeyError, JSONDecodeError, NotFound), NÃO ESCONDA! VOMITE e cole a mensagem de erro exata e técnica no chat do Telegram para o Arquiteto poder analisar, dizendo que a ferramenta quebrou por aquele exato motivo técnico. "
             f"Se você precisar usar uma ferramenta, acione-a silenciosamente (Native Tool Calling) com argumentos válidos em string."
         )
         user_histories[chat_id] = [
