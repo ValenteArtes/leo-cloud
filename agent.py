@@ -275,18 +275,31 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         return error_msg
 
 async def transcribe_audio(file_path: str) -> str:
-    """Envia o arquivo de audio para o modelo Whisper da Groq (Grátis e veloz)."""
+    """Envia o arquivo de audio para o modelo Whisper da Groq com fallback para outro modelo se o Turbo falhar."""
     try:
         with open(file_path, "rb") as file:
-            transcription = await groq_client.audio.transcriptions.create(
-              file=(file_path, file.read()),
-              model="whisper-large-v3-turbo",
-              language="pt"
-            )
+            audio_bytes = file.read()
+            
+        transcription = await groq_client.audio.transcriptions.create(
+            file=(os.path.basename(file_path), audio_bytes, "audio/ogg"),
+            model="whisper-large-v3-turbo",
+            language="pt"
+        )
         return transcription.text
     except Exception as e:
-        print(f"[!] Erro de transcricao Whisper: {e}")
-        return ""
+        print(f"[!] Erro de transcricao Whisper-Turbo: {e}")
+        try:
+            print("[*] Tentando fallback para whisper-large-v3...")
+            transcription = await groq_client.audio.transcriptions.create(
+                file=(os.path.basename(file_path), audio_bytes, "audio/ogg"),
+                model="whisper-large-v3",
+                language="pt"
+            )
+            return transcription.text
+        except Exception as e2:
+            print(f"[!] Erro de transcricao Whisper-Fallback: {e2}")
+            # Retorna um texto que o bot vai notar e responder como um erro exato ao invés de falso silêncio
+            return f"DIAGNÓSTICO DO SISTEMA: Minha API auditiva (Groq Whisper) acabou de falhar ou estourar o limite. O erro exato foi: {str(e2)}. Por favor, avise que estou surdo e peça para me mandar mensagens de texto por enquanto!"
 
 async def synthesize_speech(text: str, chat_id: int) -> str:
     """Transforma o texto do assistente em um arquivo de audio usando a voz configurada."""
