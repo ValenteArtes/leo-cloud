@@ -275,7 +275,7 @@ async def process_message(user_text: str, chat_id: int, base64_image: str = None
         return error_msg
 
 async def transcribe_audio(file_path: str) -> str:
-    """Envia o arquivo de audio para o modelo Whisper da Groq com fallback para outro modelo se o Turbo falhar."""
+    """Envia o arquivo de audio para o modelo Whisper da Groq com fallback severo para OpenRouter se a Groq for bloqueada."""
     try:
         with open(file_path, "rb") as file:
             audio_bytes = file.read()
@@ -287,19 +287,66 @@ async def transcribe_audio(file_path: str) -> str:
         )
         return transcription.text
     except Exception as e:
-        print(f"[!] Erro de transcricao Whisper-Turbo: {e}")
-        try:
-            print("[*] Tentando fallback para whisper-large-v3...")
-            transcription = await groq_client.audio.transcriptions.create(
-                file=(os.path.basename(file_path), audio_bytes, "audio/ogg"),
-                model="whisper-large-v3",
-                language="pt"
-            )
-            return transcription.text
-        except Exception as e2:
-            print(f"[!] Erro de transcricao Whisper-Fallback: {e2}")
-            # Retorna um texto que o bot vai notar e responder como um erro exato ao invés de falso silêncio
-            return f"DIAGNÓSTICO DO SISTEMA: Minha API auditiva (Groq Whisper) acabou de falhar ou estourar o limite. O erro exato foi: {str(e2)}. Por favor, avise que estou surdo e peça para me mandar mensagens de texto por enquanto!"
+        print(f"[!] Erro de transcricao Groq: {e}. Iniciando Fallback Severo no OpenRouter (Gemini)...")
+        if OPENROUTER_API_KEY:
+            try:
+                import base64
+                from openai import AsyncOpenAI
+                
+                fallback_client = AsyncOpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=OPENROUTER_API_KEY
+                )
+                
+                audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+                
+                # O Gemini 2.5 Flash via OpenRouter aceita nativamente áudio no content do chat completions!
+                # Podemos empacotar o arquivo de voz no formato Base64 OGG
+                resp = await fallback_client.chat.completions.create(
+                    model="google/gemini-2.5-flash",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Transcreva este áudio exatamente como escutou em Português. Retorne SOMENTE o texto da transcrição pua e limpa, sem aspas, com pontuação adequada, sem introduções."},
+                                {
+                                    "type": "input_audio",
+                                    "input_audio": {
+                                        "data": audio_b64,
+                                        "format": "ogg"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                )
+                
+                if resp.choices and resp.choices[0].message.content:
+                    return resp.choices[0].message.content
+                else:
+                    return "DIAGNÓSTICO DO SISTEMA: Escutei o áudio via OpenRouter, mas não consegui extrair as palavras."
+
+            except Exception as e2:
+                print(f"[!] Erro no Fallback de Áudio do OpenRouter: {e2}")
+                # Fallback extra com formato alternativo caso a biblioteca OpenAI velha recuse 'input_audio'
+                try:
+                    resp_fallback = await fallback_client.chat.completions.create(
+                        model="google/gemini-2.5-flash",
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": [
+                                    {"type": "text", "text": "Transcreva o áudio oculto a seguir. Retorne SÓ a fala detectada."},
+                                    {"type": "image_url", "image_url": {"url": f"data:audio/ogg;base64,{audio_b64}"}}
+                                ]
+                            }
+                        ]
+                    )
+                    return resp_fallback.choices[0].message.content
+                except Exception as e3:
+                    return f"DIAGNÓSTICO DO SISTEMA: Tentei transcrever na Groq (Banida) e também fiz ponte dupla pelo OpenRouter, mas as APIs recusaram a conversão de áudio. Erro fatal de voz: {str(e3)}"
+        else:
+            return f"DIAGNÓSTICO DO SISTEMA: Minha API auditiva (Groq) falhou ({str(e)}) e eu não tenho uma chave do OpenRouter para usar como Cérebro Substituto de Áudio. Estou surdo."
 
 async def synthesize_speech(text: str, chat_id: int) -> str:
     """Transforma o texto do assistente em um arquivo de audio usando a voz configurada."""
